@@ -48,40 +48,23 @@ ENV TZ="UTC" \
 
 COPY --link --from=dependencies / /
 
-# Run base build process
-RUN --mount=type=bind,source=./util/docker/common,target=/bd_build,rw \
-    bash /bd_build/prepare.sh && \
-    bash /bd_build/add_user.sh && \
+# Build each set of dependencies in their own steps
+RUN bash /bd_build/supervisor/setup.sh && \
     bash /bd_build/cleanup.sh
 
-# Build each set of dependencies in their own step for cacheability.
-RUN --mount=type=bind,source=./util/docker/common,target=/bd_build,rw \
-    --mount=type=bind,source=./util/docker/supervisor,target=/bd_build/supervisor,rw \
-    bash /bd_build/supervisor/setup.sh && \
+RUN bash /bd_build/stations/setup.sh && \
     bash /bd_build/cleanup.sh
 
-RUN --mount=type=bind,source=./util/docker/common,target=/bd_build,rw \
-    --mount=type=bind,source=./util/docker/stations,target=/bd_build/stations,rw \
-    bash /bd_build/stations/setup.sh && \
+RUN bash /bd_build/web/setup.sh && \
     bash /bd_build/cleanup.sh
 
-RUN --mount=type=bind,source=./util/docker/common,target=/bd_build,rw \
-    --mount=type=bind,source=./util/docker/web,target=/bd_build/web,rw \
-    bash /bd_build/web/setup.sh && \
+RUN bash /bd_build/mariadb/setup.sh && \
     bash /bd_build/cleanup.sh
 
-RUN --mount=type=bind,source=./util/docker/common,target=/bd_build,rw \
-    --mount=type=bind,source=./util/docker/mariadb,target=/bd_build/mariadb,rw \
-    bash /bd_build/mariadb/setup.sh && \
+RUN bash /bd_build/redis/setup.sh && \
     bash /bd_build/cleanup.sh
 
-RUN --mount=type=bind,source=./util/docker/common,target=/bd_build,rw \
-    --mount=type=bind,source=./util/docker/redis,target=/bd_build/redis,rw \
-    bash /bd_build/redis/setup.sh && \
-    bash /bd_build/cleanup.sh
-
-RUN --mount=type=bind,source=./util/docker/common,target=/bd_build,rw \
-    bash /bd_build/chown_dirs.sh
+RUN bash /bd_build/chown_dirs.sh
 
 # Add built-in docs
 COPY --from=docs --chown=azuracast:azuracast /dist /var/azuracast/docs
